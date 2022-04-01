@@ -1,106 +1,108 @@
 import { CommonAction } from "./commonAction";
+import { dirname } from "path";
 function getRandomInt(max) {
  return Math.floor(Math.random() * max);
 }
+
+function formatString(text) {
+ return text
+  .replace("kr", "")
+  .replace("\u00A0", "")
+  .replace("\n", "")
+  .trim();
+}
 export class HomePageAction extends CommonAction {
- gotoHomePage() {
+ goRegisterPage() {
+  cy.log("Go to home page").visit("https://demo.guru99.com/");
+  return this;
+ }
+
+ inputEmailRegister() {
   cy
-   .log("Go to home page")
-   .visit("https://ikonic.client.fullstackdev.info");
-  cy.viewport(1500, 660);
-
+   .get('input[name="emailid"]')
+   .type(`test${Math.random()}@gmail.com`);
   return this;
  }
- showPopup() {
-  cy.log("show popup when click button");
-  cy.get(".modal-dialog").should("be.visible");
+ clickSubmitRegister() {
+  cy.get('input[name="btnLogin"]').click();
   return this;
  }
-
- isInvalidAll() {
-  cy.get('[name="user_name"]').type("test");
-  cy.get('[name="email"]').type("test");
-  cy.get('[name="password"]').type("test");
-  cy.xpath('(.//div[text()="Sign Up"])[3]').click();
-  cy.get(".Mui-error").should("have.length", 3);
-  return this;
- }
-
- isValidAll() {
-  cy.get('[name="user_name"]').type(`test${getRandomInt(20000)}`);
-  cy.get('[name="email"]').type(`test${Math.random()}@gmail.com`);
-  cy.get('[name="password"]').type("Hoang123222@");
-  cy.xpath('(.//div[text()="Sign Up"])[3]').click();
-  return this;
- }
- isPopupRegisterSucessShow() {
-  cy.get(".modal-content").should("be.visible");
-  cy.xpath('(.//div[text()="OK"])').click();
-  return this;
- }
- inputLoginInValidAccount() {
+ isRegisterSuccess() {
   cy
-   .get(
-    ".jss6 > :nth-child(1) > .MuiPaper-root > .MuiInputBase-root > .MuiInputBase-input"
+   .xpath(
+    '//tr/td[@class="accpage" and text()="User ID :"]//following-sibling::td'
    )
-   .type("toants.301@gmail.com2");
-
-  cy
-   .get(
-    ".jss6 > :nth-child(2) > .MuiPaper-root > .MuiInputBase-root > .MuiInputBase-input"
-   )
-   .type("Abcd123!@2");
-  cy.get(".jss12 > .jss1008 > .jss1009 > .jss1020").click();
-
-  return this;
- }
- inputLoginValidAccount() {
-  cy
-   .get(
-    ".jss6 > :nth-child(1) > .MuiPaper-root > .MuiInputBase-root > .MuiInputBase-input"
-   )
-   .type("toants.301@gmail.com");
-
-  cy
-   .get(
-    ".jss6 > :nth-child(2) > .MuiPaper-root > .MuiInputBase-root > .MuiInputBase-input"
-   )
-   .type("Abcd123!@");
-  cy.get(".jss12 > .jss1008 > .jss1009 > .jss1020").click();
-  cy.url().should("eq", "https://ikonic.client.fullstackdev.info/");
-  return this;
- }
- isMessageShowing() {
-  cy.get(".rnc__notification-content").should("be.visible");
-  return this;
- }
-
- clearInputLogin() {
-  cy
-   .get(
-    ".jss6 > :nth-child(1) > .MuiPaper-root > .MuiInputBase-root > .MuiInputBase-input"
-   )
-   .clear();
-
-  cy
-   .get(
-    ".jss6 > :nth-child(2) > .MuiPaper-root > .MuiInputBase-root > .MuiInputBase-input"
-   )
-   .clear();
-  return this;
- }
-
- uploadAvatar() {
-  cy.get(".jss250 > .jss1011 > .jss1009 > .jss1020").click();
-  cy.wait(200);
-  cy.xpath(`//input[@id="avatar"]`);
-  cy.fixture("anh-gai-xinh-1.jpg").then((fileContent) => {
-   cy.xpath(`//input[@id="avatar"]`).attachFile({
-    fileContent: fileContent.toString(),
-    fileName: "anh-gai-xinh-1.jpg",
-    mimeType: "image/png",
+   .invoke("text")
+   .then((text1) => {
+    cy
+     .xpath(
+      '//tr/td[@class="accpage" and text()="Password :"]//following-sibling::td'
+     )
+     .invoke("text")
+     .then((text2) => {
+      cy.writeFile("cypress/fixtures/data.json", {
+       username: formatString(text1),
+       password: formatString(text2),
+      });
+     });
    });
+
+  return this;
+ }
+
+ //! login page
+ goLoginPage() {
+  cy.log("Go to home page").visit("https://demo.guru99.com/v4");
+  return this;
+ }
+ inputBlankLogin() {
+  cy.get('input[name="uid"]').type("");
+  cy.get('input[name="password"]').type("");
+  cy.contains("label", "User-ID must not be blank");
+  cy.contains("label", "Password must not be blank");
+  return this;
+ }
+ inputLoginInvalid() {
+  cy.get('input[name="uid"]').type("mngr389933");
+  cy.get('input[name="password"]').type("Uhapyby");
+  return this;
+ }
+
+ inputLoginValid() {
+  cy
+   .readFile("cypress/fixtures/data.json")
+   .its("username")
+   .then((usrname) => {
+    cy.get('input[name="uid"]').type(usrname);
+   });
+  cy
+   .readFile("cypress/fixtures/data.json")
+   .its("password")
+   .then((password) => {
+    cy.get('input[name="password"]').type(password);
+   });
+  return this;
+ }
+ clickLogin() {
+  cy.get('input[name="btnLogin"]').click();
+  return this;
+ }
+ clickReset() {
+  cy.get('input[name="uid"]').type("mngr389933");
+  cy.get('input[name="password"]').type("Uhapyby");
+  cy.get('input[name="btnReset"]').click();
+  cy.get('input[name="uid"]').should("be.empty");
+  cy.get('input[name="password"]').should("be.empty");
+  return this;
+ }
+ loginSuccess() {
+  cy.url().should("include", "/Managerhomepage.php");
+ }
+ showAlerLoginFailed() {
+  cy.on("window:alert", (text) => {
+   expect(text).to.contains("User or Password is not valid");
   });
-  cy.get(":nth-child(2) > .jss1008 > .jss1009 > .jss1020").click();
+
+  return this;
  }
 }
